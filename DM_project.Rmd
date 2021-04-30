@@ -1,0 +1,660 @@
+---
+title: "Final Project"
+author: "Group11"
+date: "4/6/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+#Introduction
+
+The focus of our project is on predicting if the persons Income will be over 50k$ a year or under 50k$. The data used in this project was taken from the 1994 Census Database and was provided by the UCI Machine Learning Repository.This is a medium sized dataset with 32561 observations and 15 attributes. Of these 15 attributes 9 are categorical and 6 are numerical.
+
+The dataset has various information about the person like there Age, sex, gender, Occupation,  Educationlevel, hours per week, race, native country etc, these are used to predict if the person makes above or under 50k a year
+
+This Project is completed in R and uses the packages ggplot2, plyr, dplyr, class, tree, randomForest, and ROCR. We used Decision Trees, Logistic Regression, and Random Forests to perform predictive modeling on the data. The quality model was Random Forests, followed by Logistic Regression and then Decision Trees. The fashions showed that  Educationwas indeed a very essential predictor in determining whether or no longer an man or woman made extra than $50,000, as well as Capital Gain, Relationship, Age, and Occupation. Race, Sex, and Working Class were consisitently marked as predictors that had the least amount of have an effect on on Income. This document will consist of the step-by-step strategies We took to discover these conclusions and explanations on the concepts.
+
+Nature of data:
+• Data Set Characteristics: Multivariate
+• Attribute Characteristics: Categorical and Numerical
+• Number of Records: 32561
+• Number of Attributes: 15
+
+Attributes Info:
+
+     Attribute         :       Information
+ 1.  Income            :   The Income of the person 1 for >50k 
+                           and 0 for <50k.
+ 2.  Age               :   continous.
+ 3.  Workingclass      :   Private, Self-emp-not-inc, Self-emp-inc,
+                           Federal-gov, Local-gov, State-gov, Without-pay,
+                           Never-worked.
+ 4.   Final_Weight     :   final weight continous.
+ 5.   Education        :   Bachelors, Some-college, 11th, HS-grad,
+                           Prof-school, Assoc-acdm, Assoc-voc, 9th, 7th-8th,
+                           12th, Masters, 1st-4th, 10th, Doctorate, 5th-6th,
+                           Preschool.
+ 6.  Education_num     :   continuous.
+ 7.  Marital_Status    :   Married-civ-spouse, Divorced, Never-married,
+                           Separated, Widowed, Married-spouse-absent,
+                           Married-AF-spouse.
+ 8.  Occupation        :   Tech-support, Craft-repair, Other-service, Sales,
+                           Exec-manAgerial, Prof-specialty,Handlers-cleaners,
+                           Machine-op-inspct, Adm-clerical, Farming-fishing,                                                                      Transport-moving,Priv-house-serv, Protective-serv,                                                                     Armed-Forces.
+ 9.  Relationship     :    Wife, Own-child, Husband, Not-in-family,
+                           Other-relative, Unmarried.
+10.  Race             :    White, Asian-Pac-Islander, Amer-Indian-Eskimo,
+                           Other, Black.
+11.  Sex              :    Female, Male.
+12.  Capital_gain     :    continuous.
+13.  Capital_loss     :    continuous.
+14.  Hours_per_week   :    continuous.
+15.  Native_country   :    United-States, Cambodia, England,                                                                    Puerto-Rico ,Canada, Germany, Outlying-US(Guam-USVI-etc), India,                                     Japan, Greece, South, China, Cuba, Iran, Honduras, Philippines, Italy,                               Mexico, Portugal, Ireland, France,
+                           Dominican-Republic, Laos, Ecuador, Taiwan,
+                           Haiti, Columbia, Hungary, Guatemala, Nicaragua,
+                           Scotland, Thailand, Yugoslavia, El-Salvador,
+                           Trinadad & Tobago, Peru, Hong,Holand-Netherlands Poland, Jamaica,Vietnam, 
+
+
+ #Pre-Processing Dataset
+```{r}
+#the folllowing packAges will be needed in order to perform our analysis:
+
+#install.packAges("ggplot2")
+#install.packAges("plyr")
+#install.packAges("dplyr")
+#install.packAges("class")
+#install.packAges("tree")
+#install.packAges("randomForest")
+#install.packAges("ROCR")
+#install.packages(MASS)
+
+#Load libraries
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(class)
+library(tree)
+library(randomForest)
+library(ROCR)
+library(caret)
+library(corrplot)
+library(RColorBrewer)
+library(MASS)
+library(rpart)
+```
+
+After downloading the dataset from the UCI Machine Learning Repository, read the data into R and check the structure of it.
+
+```{r}
+
+#Reading the data files
+Income_data <- read.csv("Income_data.csv")
+
+#Add column labels
+Income_data.names <- c("Age", 
+                 "Workingclass", 
+                 "Final_Weight", 
+                 "Education", 
+                 "Education_num", 
+                 "Marital_Status",
+                 "Occupation", 
+                 "Relationship", 
+                 "Race", 
+                 "Sex", 
+                 "Capital_gain ",
+                 "Capital_loss",
+                 "Hours_per_week",
+                 "Native_country",
+                 "Income")
+colnames(Income_data) <-Income_data.names
+
+#Show dataset
+str(Income_data)
+```
+We have done this project in two parts:
+1. Data Visulaization
+2. Data Modelling
+
+
+first we will explore the data and will do necessary visualization to understand the data better.
+We will try to find correlations between the variables.
+
+```{r}
+##Data exploration
+
+#checking the dimension of the dataset
+dim(Income_data)
+
+#summary
+summary(Income_data)
+
+#Correlation plot
+num.var <- c(1, 3, 5, 11:13)
+corrplot(cor(Income_data[,num.var]),type="upper", order="hclust",
+         col=brewer.pal(n=8, name="RdYlBu"))
+```
+#Data Visualization
+
+Visualizing the variables from the income data using bargraph and histogram.
+
+```{r}
+par(mfrow=c(1,2))
+barplot(table(Income_data$Age), xlab = "Age", ylab = 'Frequency', main = "Age", col= "deepskyblue1")
+
+barplot(table(as.factor(Income_data$Sex)), xlab = 'Sex', ylab = 'Frequency', main = 'Sex', col = c("#F67373", "#73D7F6"))
+
+barplot(table(as.factor(Income_data$Income)), xlab = 'Income level', ylab = 'Frequency', main = 'Target Distribution', col = c("#F67373", "#73D7F6"))
+
+barplot(table(as.factor(Income_data$Marital_Status)), xlab = 'Marital status', ylab = 'Frequency',main = 'Marital Status')
+
+barplot(table(as.factor(Income_data$Race)), xlab = 'Race', ylab = 'Frequency', main = 'Race Distribution', col = brewer.pal(n = 5, name = "PuBu"))
+
+barplot(table(as.factor(Income_data$Education)), xlab = 'Education', ylab = 'Frequency', main = 'Education Distribution', col = brewer.pal(n = 7, name = "Set3"))
+
+hist(Income_data$Capital_gain, xlab = 'Capital gain', ylab = 'Frequency', main = 'Capital Gain histogram', col = 'deepskyblue')
+
+hist(Income_data$Capital_loss, xlab = 'Capital loss', ylab = 'Frequency', main = 'Capital Loss histogram', col = 'deepskyblue3')
+
+barplot(table(as.factor(Income_data$Relationship)), xlab = 'relationship', ylab = 'Frequency', main = 'relationship Distribution', col = brewer.pal(n = 7, name = "Dark2"))
+
+hist(Income_data$Hours_per_week, xlab = 'Hours per week', ylab = 'Frequency', main = 'Hours per week histogram', col = 'tomato2')
+
+```
+
+```{r}
+# checking for if someone has both capital gain and capital loss
+
+sum(Income_data$Capital_loss > 0 & Income_data$`Capital_gain ` >0)
+```
+```{r}
+#Net Capital Gain
+hist(Income_data$`Capital_gain `- Income_data$Capital_loss , col = "Red" , main = "Net Capital Gain Of Income Data")
+```
+```{r}
+#workclass
+ggplot(Income_data, aes(x = Workingclass, fill = Income)) + geom_bar(position="fill") + theme(axis.text.x = element_text(angle = 90)) + ggtitle("Workclass")
+table(Income_data$Workingclass, Income_data$Income)
+
+
+```
+from the above graph we can see that:
+   0
+```{r}
+#education
+
+
+ggplot(Income_data, aes(x = Education, fill = Income)) + geom_bar(position="fill") + theme(axis.text.x = element_text(angle = 90)) + ggtitle("Education")
+```
+From the above graph we know what the education plays an important role in income.
+
+```{r}
+#relationship vs sex
+ggplot(Income_data, aes(x = Relationship, fill = Sex)) + geom_bar(position="fill") + theme(axis.text.x = element_text(angle = 90)) + ggtitle("Relationship and Gender")
+
+```
+ The original levels Husband Not-in-family Other-relative Own-child Unmarried Wife have been replaced by Not-in-family Other-relative Own-child Unmarried Spouse
+
+```{r}
+ggplot(Income_data, aes(x=Sex  , y=Income)) + 
+  geom_bar(aes(fill = Income), stat="Identity", position="dodge")
+
+ggplot(Income_data, aes(x=Income)) + 
+  geom_bar(stat="count")
+
+#Recode variables
+Income_data$Income <- ifelse(Income_data$Income == " <=50K", 0, 1)
+Income_data$Income <- as.factor(Income_data$Income)
+```
+Only about 1/4 of the observations have an Income value of ">$50K" that is 1. To solve this problem, we will under-sample the data, taking 4000 observations for our training set with equal amounts of randomly selected values for Income and 1000 randomly selected observations from the remainder of the data for the test set.
+
+# Removing variables
+```{r}
+ggplot(Income_data , aes(x = Native_country)) +geom_bar()
+```
+We will also remove Native_country due to the fact that it will most likely not be a very meaningful predictor. Out of the 32560 observations, 90% have the value of "United States".
+
+After inspecting the predictors Education_num and Education, we see that they are the portraying the same information. Education_num is just the numeric value of Education. We will keep  Educationbecause of its interpretability and remove Education_num.
+
+```{r}
+Income_data <- subset(Income_data , select = -c(Education_num , Native_country))
+#View(Income_data)
+```
+#Removing Missing Values
+
+We want to check how many missing values are in the dataset 
+and then remove observations that have them.
+
+```{r}
+#count missing values
+Income_data[Income_data == " ?"] <- NA
+sum(is.na(Income_data))
+
+Income_data <- na.omit(Income_data)
+Income_data <- data.frame(Income_data)
+
+#'Re-factoring' variables to exclude the unwanted levels
+Income_data$workclass <- as.factor(Income_data$Workingclass)
+Income_data$occupation <- as.factor(Income_data$Occupation)
+
+#Check for class imbalance
+summary(Income_data$Income)
+
+```
+```{r}
+#Chi-Square Test
+chisq.test(Income_data$Income, Income_data$Age)
+chisq.test(Income_data$Income, Income_data$Education)
+chisq.test(Income_data$Income, Income_data$Marital_Status)
+chisq.test(Income_data$Income, Income_data$Occupation)
+chisq.test(Income_data$Income, Income_data$Relationship)
+chisq.test(Income_data$Income, Income_data$Race)
+chisq.test(Income_data$Income, Income_data$Sex)
+chisq.test(Income_data$Income, Income_data$Capital_gain)
+chisq.test(Income_data$Income, Income_data$Capital_loss)
+
+```
+By using chi-squared test we came to know that dependent variables of Income are all the other variables in the dataset except Final_Weight.The Final_Weight which is the final weight determined by the Census Organization is of no use in any of the analysis that we are doing henceforth and is removed. The educationnum if a repetitive variable which recodes the categorical variable  Educationas a numeric variable but will be used in the analysis for decision trees, hence is not being removed.
+
+
+```{r}
+#creating Training and Test Data
+#set seed to ensure you always have same random numbers generated
+set.seed(1)
+
+#Separate values of Income
+Income_data.GT50k <- subset(Income_data, Income_data$Income == 1)
+Income_data.LT50k <- subset(Income_data, Income_data$Income == 0)
+
+#Take 2000 random observations from both subsets of Income
+Income_data.GT50k.indices <-sample(1:nrow(Income_data.GT50k),2000,replace = TRUE)
+Income_data.LT50k.indices<-sample(1:nrow(Income_data.LT50k), 2000 , replace = TRUE)
+
+#Combine subsets and randomize
+Income_data.GT50k.train <- Income_data.GT50k[Income_data.GT50k.indices,]
+Income_data.LT50k.train <- Income_data.LT50k[Income_data.LT50k.indices,]
+Income_data.train <- rbind(Income_data.GT50k.train, Income_data.LT50k.train)
+Income_data.train <- Income_data.train[sample(nrow(Income_data.train)),]
+
+#Take row names from training observations
+GT50k.rows <- row.names(Income_data.GT50k.train)
+LT50k.rows <- row.names(Income_data.LT50k.train)
+GT50k.rows <- as.numeric(GT50k.rows)
+LT50k.rows <- as.numeric(LT50k.rows)
+
+#Create subset of Income_data dataset without training observations
+Income_data.sub <- Income_data[-GT50k.rows,]
+Income_data.sub <- Income_data.sub[-LT50k.rows,]
+
+#Take 1000 random observations for test set
+set.seed(1)
+test.indices <- sample(1:nrow(Income_data.sub), 1000 , replace = TRUE)
+Income_data.test <- Income_data.sub[test.indices,]
+
+summary(Income_data.train$Occupation)
+summary(Income_data.test$Occupation)
+
+```
+For convenience purposes, we will create Xtrain, Ytrain, Xtest, and Ytest that containing the response and predictor variables for the training and test sets.
+
+```{r}
+Ytrain <- Income_data.train$Income
+Xtrain <- Income_data.train %>% filter(-Income)
+Ytest <- Income_data.test$Income
+Xtest <- Income_data.test %>% filter(-Income)
+```
+
+Now that we have concluded the pre-processing step, we can move on to creating 
+models we will use to predict Income.
+
+We will check the model accuracy with the confusion matrix:
+Accuracy:
+Accuracy is one of the most common metrics in measuring the classification models performance. It is defined as the ratio of number of correct predictions over the total predictions made. So, obviously the more theaccuracy is the better the model. We should always evaluate our models performance on the test data buton the train data since the model is built on the train data it usually performs better on the data it hasseen, but test data is something which the model has not seen so we can trust the test data’s metrics.
+Accuracy = Number of correct predictions / Total number of predictions made
+
+Confusion Matrix:
+We will use confusion matrix as our second metric as just in case if the accuracies of two models are relativelysame we look at confusion matrix to identify the false negatives and false positives. Here in our case theprimary goal is to predict if the person makes above 50k false positives and false negatives helps us in decidingthe best model.
+
+Confusion matrix as the name says can be really confusing to understand, it is the summary of the predictionswhere the correct and incorrect classifications are summarized. It is has 4 elements
+• True positive - Observation is positive, and is predicted to be positive.
+• True Negative - Observation is negative, and is predicted to be negative.
+
+
+##Methods
+1. Decision Trees
+2. Random Forest
+3. Logestic Regression
+
+
+#Modelling
+
+##Decision Tree
+A decision tree classifies by choosing a threshold on a feature and splits the data according
+to a ‘splitting rule'. Since the features need to be numerical, we had to discard certain features and change how we represented others. For example, we could not convert Native_country into numerical values since this would cause an implicit feature ranking skewing our results.However,  Educationis a feature that can be converted into a numerical value, as a certain level of  Educationcan be higher or lower than others in rank. For this reason, we chose only to consider limited attributes (This is represented as a binary feature with 1 being male and 0 being female). The tree is then built on the training set and used to predict the binary value of the label (whether or not an individual makes more that $50,000) on the test set.
+
+By using the tree() function, we are able to grow a tree on the training set, using Income as the response and all other variables as predictors
+
+```{r}
+erate <- function(predicted.value, true.value){ return(mean(true.value!=predicted.value))
+}
+
+#Fit tree on entire dataset
+tree.full <- tree(Income ~ ., data= Income_data)
+#Plot tree
+plot(tree.full)
+text(tree.full, pretty = 0, cex = .8, col = "red")
+title("Classification Tree Built on Full Income_data Dataset")
+
+```
+
+
+```{r}
+#Fitting the model on training set
+tree_Income_data <- tree(Income ~ . , data = Income_data.train)
+tree_Income_data <- tree(Income ~ . ,
+                         data = Income_data.train,
+                         control = tree.control(4000,
+                                                mincut = 5,
+                                                mindev = 0.003))
+
+```
+
+Now that the tree has been created, we can now plot the tree to see what it looks like.
+
+```{r}
+#plotting the tree
+plot(tree_Income_data)
+text(tree_Income_data, pretty = 0, cex = .8, col = "red")
+title("Unpruned Decision Tree of size 23")
+```
+Notice how at the split of each node, there is text describing the predictor variable and certain values within the variable. If an observation has these values, then it moves down the left side of the node. If it does not contain these values, it moves down the right side. The title of this tree is "Unpruned Decision Tree of size 23" because it is has 23 terminal nodes (the 1's and 0's at the bottom of the tree) and it is not pruned.
+
+The next step is to prune our tree in order to find a better size and a better error rate. In order to prune the tree, we will perform a 10-fold cross-validation. This will allow us to find the best tree size that will minimize the error rate.
+
+```{r}
+#Predict on training and test set
+tree.pred.train <- predict(tree_Income_data, Income_data.train, type="class")
+tree.pred.test <- predict(tree_Income_data, Income_data.test, type="class")
+
+#Calculate train and test error on tree
+tree.errors <- data.frame(train.error = erate(tree.pred.train, Ytrain), 
+                          test.error = erate(tree.pred.test, Ytest))
+tree.errors
+```
+```{r}
+####Conduct 10-fold cross-validation to prune the tree
+
+cv = cv.tree(tree_Income_data, FUN=prune.misclass, K=10)
+
+# Best size
+best.cv = cv$size[which.min(cv$dev)]
+best.cv
+
+#Prune tree
+tree.Income_data.pruned <- prune.misclass(tree_Income_data, best=best.cv)
+
+#Plot pruned tree
+plot(tree.Income_data.pruned)
+text(tree.Income_data.pruned, pretty=0, col = "blue", cex = .8)
+title("Pruned Decision Tree of size 14")
+```
+Now that we have our pruned tree, we can do a little bit of analysis on what we can see. One of the advantages of decision trees is that it is easy to visually interpret. Right away, we see that the first node deals with the age predictor and shows that you move down the right side of the tree if you happen to be more than 25.5. On that side of the tree, there is visibly more Income values of 1, indicating that more people make greater than $50K a year. Moving down a couple of nodes, we see capital_loss on both sides of the tree. We can also see that if an individual has "some-college" level of education or less, they fall on the side of less Income values of 1.
+
+With the pruned tree, we can apply the tree on the training and test sets in order to get our training and test error rates. We will create a function erate() that will calculate the misclassification error rate when given the predicted responses and actual responses as inputs. This function will be used to calculate the error rates for the rest of the models as well.
+
+```{r}
+#Predict pruned tree on training and test set
+tree.pred.train.pruned <- predict(tree.Income_data.pruned, Income_data.train, type="class")
+
+tree.pred.test.pruned <- predict(tree.Income_data.pruned, Income_data.test, type="class")
+
+#Calculate train and test error on pruned tree
+tree.errors.pruned <- data.frame(train.error = erate(tree.pred.train.pruned, Ytrain),
+                                 test.error = erate(tree.pred.test.pruned, Ytest))
+tree.errors.pruned
+
+```
+Our pruned tree has a training error of 0.243 and a test error of 0.286.
+
+Now that we have our pruned decision tree, we can use the summary() function to see its inner workings.
+```{r}
+summary(tree.Income_data.pruned)
+```
+From here, we can see the predictor variables that went into the making of this pruned tree. This means that these were the most important predictors that influence Income.
+
+#checking accuracy through confusion Matrix
+
+A decision tree classifies by choosing a threshold on a feature and splits the data according to a ‘splitting rule’. Since the features need to be numerical, we had to discard certain features and change how we represented others. For example, we could not convert native.country into numerical values since this would cause an implicit feature ranking skewing our results.However, education is a feature that can be converted into a numerical value, as a certain level of education can be higher or lower than others in rank. For this reason, we chose only to consider limited attributes (This is represented as a binary feature with 1 being male and 0 being female). The tree is then built on the training set and used to predict the binary value of the label (whether or not an individual makes more that $50,000) on the test set.
+
+```{r}
+dec_fit<- rpart(Income ~  Workingclass + Education + Marital_Status  + Occupation + Relationship + Race,method="class", data = Income_data.train)
+dec_pred<-predict(dec_fit, Income_data.test, type = 'class')
+
+
+dt_cm = confusionMatrix(as.factor(dec_pred), as.factor(Income_data.test$Income))
+dt_cm
+dt_accuracy <- dt_cm$overall[1]
+cat("The Decision Tree accuracy is", dt_accuracy)
+```
+The following are the results of the Decision Tree Analysis. The accuracy using this model is 74.4%. The sensitivity is 70.71% and the specificity is 84.96%. . The kappa rate is just over 40% so the error rate is quite low.
+
+##ROC Curve
+
+Now that we have our ideal Decision Tree, we will use ROC (Receiver Operation Characteristic) curves to show the relationship between false positive (FP) and true positive (TP) rates.
+And ideal ROC curve will be as close to the point (0,1) as possible.
+```{r}
+## Decision tree ROC
+tree_p1 <- predict(tree.Income_data.pruned , Income_data.test)
+tree_p2 <- data.frame(tree_p1[,2])
+tree_predict <- prediction(tree_p2 , Income_data.test$Income)
+tree_predf <- performance(tree_predict, measure = "tpr" , x.measure = "fpr")
+```
+
+In order to determine the best model, we will be looking at the AUC (Area Under the Curve) of the ROC curve. The higher the AUC, the better the model is at predicting the response variable.
+
+```{r}
+#AUC
+auc = performance(tree_predict, "auc")@y.values
+auc
+```
+Finally, we plot the ROC curve showing the AUC.
+
+```{r}
+plot(tree_predf, col=2, lwd=3, main="Decision Tree ROC curve")
+legend(.5,.2, "AUC = 0.786801")
+abline(0,1)
+```
+##Random Forests
+Random Forests is a machine learning algorithm that is supervised. It essentially consists of a large number of decision trees that have been bagged prepared. Random forests outperform other models because they can be used for both regression and classification and are relatively simple to understand and incorporate. The random forests model constructs the tree using a random subset of features.centered on such, introducing randomness to the model, resulting in a stable, complex, and generalized model Its hyperparameters are almost identical to those of decision trees. The positive thing about random forest models is that they don't overfit, but the downside is that they can be sluggish and time consuming when the number of trees are high.
+
+In order to find the optimal number of predictors, we will run a loop comparing different number of selected predictors and determine which gives the lowest misclassification error rate.
+```{r}
+#Set lists of errors to value 0 and list length eqaul to number of predictor values
+train.error <- test.error <- rep(0, length(Xtrain))
+```
+
+```{r}
+#Run random forest model on different number of predictors and calculate training/test errors
+
+#Fit random forest model with 2000 trees and i predictors
+bag.train <- randomForest(Income~., data = Income_data.train, ntree=2000, importance = TRUE)
+
+#Predict on training and test set
+Forest.pred.train <- predict(bag.train, type="class")
+Forest.pred.test <- predict(bag.train, Income_data.test, type="class")
+
+#Calculate train and test error
+train.error<- erate(Forest.pred.train,Income_data.train$Income)
+test.error<- erate(Forest.pred.test, Income_data.test$Income)
+    
+```
+Now we can create a dataframe containing all training and test errors for each set number of predictors used in the model.
+mtry: Number of variables randomly sampled as candidates at each split
+```{r}
+Forest.errors <- data.frame(train.error = train.error,
+                                test.error = test.error,
+                                mtry = 1:length(Xtrain))
+    Forest.errors
+```
+Now we willChoose number of predictors that has the lowest test error
+
+```{r}
+best.num.predictors <- Forest.errors$mtry[which.min(Forest.errors$test.error)]
+#Show training error, test error, and number of predictors
+Forest.errors[best.num.predictors,]
+```
+
+After looking at the dataframe, we can see that the Random Forest model with the lowest test error used only 4 predictors. This makes sense because it is the default number of predictors used by Random Forests for classification and generally works pretty well.
+
+Now that we have the best number of predictors, we will create the Random Forest model again, but only using 4 predictors and 2000 trees. We will also create a plot that shows the imporance of each variable.
+
+```{r}
+#Fit model with best number of predictors
+best.bag.train <- randomForest(Income~.,data = Income_data.train,mtry = best.num.predictors,
+ntree=2000,importance = TRUE)
+
+#Plot variable importance
+varImpPlot(best.bag.train)
+```
+MeanDecreaseAccuracy shows how worse the model does when specific predictors are taken out. The higher the value, the more the accuracy of the model predictions decreases. We will focus on this to rank the importance of our predictor variables. From this graph, we can see that `Capital_gain`, `Education`,`Age`, `Occupation`, and `Hours_per_week` made the most difference in determining `Income`.
+
+MeanDecreaseGini essentially shows the purity of the nodes at the end of the tree. Gini impurity is a measure of how often a randomly chosen element in a set would be incorrectly labeled if labeled. In this case, the higher the MeanDecreaseGini, the less pure the nodes get and more important the predictors are. Some notable variables such as `Relationship`, `Occupation`, and `Marital_status` should also be taken into consideration due to their high MeanDecreaseGini value and prevelence in other models.
+
+Making predictions from the diven data
+```{r}
+Forest.prob <- predict(best.bag.train, Income_data.test, type="prob")
+Forest.prob2 <- data.frame(Forest.prob[,2])
+Forest.pred <- prediction(Forest.prob2, Income_data.test$Income)
+Forest.perf <- performance(Forest.pred, measure="tpr", x.measure="fpr")
+```
+
+
+#checking Accuracy Through Confusion Matrix
+
+
+```{r}
+
+Income_data.train$Income = as.factor(Income_data.train$Income)
+forest.pred <- predict(best.bag.train, Income_data.test)
+
+forest_cm<- confusionMatrix(forest.pred, as.factor(Income_data.test$Income))
+forest_cm
+
+rf_accuracy <- forest_cm$overall[1]
+cat("The Random Forest accuracy is", rf_accuracy)
+
+```
+The following are the results of the Random Forest Analysis. The accuracy using this model is 76.8%.
+The recall rate is 74.27% which is little high that mean all the positive values are correctly identified and specificity is 84.5% which is pretty high that mean above 80% of the negative values in the dataset are correctly identified by the model.
+
+
+Finally plot ROC and compute the AUC to compare to other models.
+
+```{r}
+
+#AUC
+auc = performance(Forest.pred, "auc")@y.values
+    auc
+
+```
+```{r}
+#Plot ROC with AUC
+plot(Forest.perf, col=2, lwd=3, main="Random Forest ROC curve")
+legend(.5,.4, "AUC = 0.8848337")
+abline(0,1)
+```
+
+## Logistic Regression
+
+The next model that we apply is Logistic Regression. In datasets where the response variable is binary, Logistic Regression works by modeling the probability that response variable $X$ belongs to a particular category instead of trying to model $X$ directly.
+
+By using `glm` (general linear model), we can determine the likelihood of a specific observation having a particular class label. If we assign different thresholds to the probability that a certain class label is created, we can find the different error rates for those thresholds. Performing 10-fold cross-validation will allow us to choose the best threshold that minimizes the misclassification error rate.
+
+```{r}
+glmfit <- glm(Income~., data=Income_data.train, family=binomial)
+summary(glmfit)
+```
+
+
+####LDA  
+LDA also known as Linear Discriminate Analysis makes predictions by estimating the probability that a new set of inputs belongs to each class. The class that gets the highest probability is the output class and a prediction is made.
+```{r}
+#LDA with all predictors
+ldafit <- lda(Income~., data=Income_data.train)
+ldapred <- predict(ldafit, newdata=Income_data.test)
+ldatable <- table(ldapred$class, Income_data.test$Income)
+lda.acc <- mean(ldapred$class==Income_data.test$Income)
+lda.acc
+```
+Linear Discriminate Analysis has a lower accuracy  than logistic regression in this case. The most likely explanation for this is that, unlike logistic regression, linear discriminate analysis considers naturally distributed predictors. This result illustrates why the predictors are highly likely to be non-normally distributed, as we see in numerical variables like net capital.
+
+#Checking Accuracy through Confusion Matrix
+ 
+ 
+```{r}
+
+lr_pred <- predict(glmfit, newdata = Income_data.test, type = "response")
+lr_pred<-ifelse(lr_pred> 0.5,1,0)
+lr_cm = confusionMatrix(as.factor(lr_pred),as.factor(Income_data.test$Income))
+lr_cm
+lr_accuracy <- lr_cm$overall[1]
+cat("The Logistic Regression accuracy is", lr_accuracy)
+```
+ 
+
+
+```{r}
+lr_p1 <- predict(glmfit , Income_data.test)
+#lr_p2 <- data.frame(lr_p1[,2])
+lr_predict <- prediction(lr_p1 , Income_data.test$Income)
+lr_predf <- performance(lr_predict, measure = "tpr" , x.measure = "fpr")
+#AUC
+auc = performance(lr_predict, "auc")@y.values
+auc
+```
+
+
+```{r}
+plot(lr_predf, col=2, lwd=3, main="Logistic Regression ROC curve")
+legend(.5,.2, "AUC = 0.8964601")
+abline(0,1)
+```
+it might be hard to see, but the curve for the Logistic Regression ROC is slightly closer to the point (0,1) than the curve for Decision Trees .
+
+#CONCLUSIONS:
+
+Through Confusion Matrix
+After considering the results all the methods implemented on this dataset, The most suitable method is ought to be **Logistic Regression**. The stats for the boosting are 79.30% Accuracy, Coefficient interval is 81.83% and 83.05% for 0 and 1 respectively and seems to be there is no class imbalance in this model. The positive predictive value is greater than 90%. Considering all these stats logistic Regression is said to be best suitable model fitted to these dataset.
+
+Through ROC curve:
+After considering the results all the methods implemented on this dataset, The most suitable method is ought to be **Logistic Regression** with AUC = 0.8964601.
+
+At the beginning of this project, the goal was to find a model that accurately predicts if an individual makes more than $50K a year and determine which factors had the largest impact on that response variable (while paying particular attention to Education). With an AUC higher and test misclassification error rate lower than the other two models, Logistic Regression wins as the best predictive model of the three. When looking at the variables, it was clear that some variables were prominent in having an effect on `Income`. `Education`, `Relationship`, `Marital_status`, and `Occupation` were some of those variables. To answer the question that I was most interested in, it was clear that any education level above a High School Diploma had a significant positive affect on determining if an individual made greater than 50K a year.
+
+For further work, I intend on tinkering with the different values associated with Random Forests. I know there is much more to Random Forests than what I have accomplished with it in this project. I would also like to try different pruning methods with Decision Trees and attempt other models as well. Finally, I would like to attempt this whole project again, except with the full dataset. Instead of using 5000, I would want to use all 32560 observations.
+
+
+## References
+
+- https://en.wikipedia.org/wiki/Random_forest
+- https://www.rdocumentation.org/packages/randomForest/versions/4.6-12/topics/randomForest
+- http://trevorstephens.com/kaggle-titanic-tutorial/r-part-5-random-forests/
+- https://cran.r-project.org/web/packages/randomForest/randomForest.pdf
+- https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm
+- https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
+- http://www.listendata.com/2014/11/random-forest-with-r.html
+ - https://stats.stackexchange.com/questions/164569/interpreting-output-of-importance-of-a-random-forest-object-in-r
+ - http://blog.datadive.net/interpreting-random-forests/
+ - https://archive.ics.uci.edu/ml/datasets/adult
+
+
+
+
